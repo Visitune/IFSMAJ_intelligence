@@ -1,0 +1,17 @@
+{
+  "rewrites": [
+    { "source": "/",           "destination": "/NC_ANALYZER.html" },
+    { "source": "/standalone", "destination": "/NC_ANALYZER_STANDALONE.html" },
+    { "source": "/guide",      "destination": "/GUIDE.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*\\.json)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+    },
+    {
+      "source": "/nc_derived.js",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+    }
+  ]
+}

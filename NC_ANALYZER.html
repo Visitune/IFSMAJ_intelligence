@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NC Analyzer — IFS Food v8</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── DESIGN SYSTEM (identique V6) ──────────────────────────────────────── */
+:root{
+  --bg-base:#0A0E1A;--bg-surface:#111827;--bg-elevated:#1C2333;
+  --bg-overlay:rgba(10,14,26,0.92);
+  --brand-primary:#6366F1;--brand-glow:#818CF8;--brand-muted:#312E81;
+  --danger:#EF4444;--danger-light:rgba(239,68,68,0.12);
+  --warning:#F59E0B;--warning-light:rgba(245,158,11,0.12);
+  --success:#10B981;--success-light:rgba(16,185,129,0.12);
+  --info:#3B82F6;--info-light:rgba(59,130,246,0.12);
+  --purple:#8B5CF6;--purple-light:rgba(139,92,246,0.12);--ai-accent-border:rgba(139,92,246,0.25);
+  --orange:#F97316;--orange-light:rgba(249,115,22,0.12);
+  --text-primary:#F9FAFB;--text-secondary:#9CA3AF;--text-muted:#4B5563;
+  --border:rgba(255,255,255,0.07);--border-active:rgba(99,102,241,0.5);
+  --shadow-card:0 1px 3px rgba(0,0,0,0.4),0 0 0 1px var(--border);
+  --shadow-elevated:0 4px 12px rgba(0,0,0,0.5);
+  --shadow-glow:0 0 24px rgba(99,102,241,0.12);
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-full:9999px;
+  --font-ui:'Inter',-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --transition-fast:0.15s ease;--transition-mid:0.25s ease;
+}
+[data-theme="light"]{
+  --bg-base:#F3F4F6;--bg-surface:#FFFFFF;--bg-elevated:#F9FAFB;
+  --text-primary:#111827;--text-secondary:#6B7280;--text-muted:#9CA3AF;
+  --border:rgba(0,0,0,0.08);--border-active:rgba(99,102,241,0.3);
+  --shadow-card:0 1px 3px rgba(0,0,0,0.08),0 0 0 1px var(--border);
+  --shadow-elevated:0 4px 16px rgba(0,0,0,0.1);
+  --shadow-glow:0 0 20px rgba(99,102,241,0.1);
+}
+
+/* ── RESET & BASE ────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-ui);background:var(--bg-base);color:var(--text-primary);line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ── LAYOUT ──────────────────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{grid-column:1;grid-row:1/3;background:var(--bg-surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sidebar-logo{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{font-size:1.4rem;color:var(--brand-primary)}
+.logo-text{font-size:0.95rem;font-weight:700}
+.logo-sub{font-size:0.65rem;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.04em}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-section{margin-bottom:20px}
+.nav-label{padding:0 20px;margin-bottom:6px;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;margin:1px 8px;color:var(--text-secondary);text-decoration:none;border-radius:var(--radius-sm);font-size:0.82rem;transition:all var(--transition-fast)}
+.nav-item:hover{background:var(--bg-elevated);color:var(--text-primary)}
+.nav-item.active{background:var(--brand-muted);color:var(--brand-primary);font-weight:600}
+.nav-item i{width:14px;flex-shrink:0}
+.nav-stat{padding:6px 20px;font-size:0.75rem;color:var(--text-muted);font-family:var(--font-mono)}
+.nav-stat strong{color:var(--text-secondary)}
+.sidebar-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.theme-toggle{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-secondary);font-size:0.78rem;font-family:var(--font-ui);transition:all var(--transition-fast);width:100%}
+.theme-toggle:hover{border-color:var(--border-active);color:var(--text-primary)}
+.status-bar{display:flex;align-items:center;gap:6px;font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);flex-shrink:0;transition:background var(--transition-mid)}
+.dot.loading{background:var(--warning);animation:pulse 1.2s ease-in-out infinite}
+.dot.ready{background:var(--success)}
+.dot.error{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+
+/* ── MAIN AREA ────────────────────────────────────────────────────────────── */
+.main-wrap{display:flex;flex-direction:column;min-height:100vh}
+.top-header{background:var(--bg-surface);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-left h1{font-size:1.05rem;font-weight:700}
+.badge-pill{font-family:var(--font-mono);font-size:0.68rem;font-weight:600;background:var(--brand-muted);color:var(--brand-glow);padding:3px 10px;border-radius:var(--radius-full);letter-spacing:0.03em}
+.header-right{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-muted)}
+.header-right strong{color:var(--text-secondary)}
+.content{padding:20px 24px;flex:1}
+
+/* ── CARDS ────────────────────────────────────────────────────────────────── */
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;transition:border-color var(--transition-mid)}
+.card+.card{margin-top:16px}
+.card-head{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.card-head h3{font-size:0.88rem;font-weight:700}
+.card-head i{color:var(--brand-primary);font-size:0.85rem;width:16px}
+.card-head .count-pill{margin-left:auto;font-family:var(--font-mono);font-size:0.7rem;font-weight:600;background:var(--bg-elevated);color:var(--text-muted);padding:2px 8px;border-radius:var(--radius-full);border:1px solid var(--border)}
+
+/* ── INPUT AREA ─────────────────────────────────────────────────────────── */
+.nc-textarea{width:100%;min-height:150px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-elevated);color:var(--text-primary);font-family:var(--font-ui);font-size:0.875rem;line-height:1.65;resize:vertical;transition:border-color var(--transition-fast)}
+.nc-textarea:focus{outline:none;border-color:var(--brand-primary);box-shadow:0 0 0 3px rgba(99,102,241,0.15)}
+.nc-textarea::placeholder{color:var(--text-muted)}
+.detected-strip{display:flex;flex-wrap:wrap;gap:6px;min-height:24px;margin:10px 0}
+.clause-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-full);font-size:0.72rem;font-weight:600;font-family:var(--font-mono);border:1px solid transparent}
+.clause-chip.ko{background:var(--danger-light);color:var(--danger);border-color:rgba(239,68,68,0.25)}
+.clause-chip.std{background:var(--info-light);color:var(--info);border-color:rgba(59,130,246,0.25)}
+.actions-row{display:flex;gap:8px;margin-top:12px}
+
+/* ── BUTTONS ─────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 16px;min-height:38px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);color:var(--text-primary);font-family:var(--font-ui);font-size:0.82rem;font-weight:500;cursor:pointer;transition:all var(--transition-fast);white-space:nowrap;-webkit-user-select:none;user-select:none}
+.btn:hover{border-color:var(--border-active)}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--brand-primary);color:#fff;border-color:var(--brand-primary);font-weight:600}
+.btn-primary:hover:not(:disabled){background:var(--brand-glow);box-shadow:var(--shadow-glow)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text-secondary)}
+.btn-ghost:hover{background:var(--bg-elevated);color:var(--text-primary)}
+
+/* ── BADGES ──────────────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:var(--radius-full);font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;white-space:nowrap;font-family:var(--font-mono)}
+.badge-ko{background:var(--danger-light);color:var(--danger)}
+.badge-major{background:var(--warning-light);color:var(--warning)}
+.badge-minor{background:var(--success-light);color:var(--success)}
+.badge-other{background:var(--info-light);color:var(--info)}
+.badge-payment{background:var(--purple-light);color:var(--purple)}
+
+/* ── GRID ─────────────────────────────────────────────────────────────────── */
+.grid2{display:grid;grid-template-columns:1fr 1.65fr;gap:16px;align-items:start}
+@media(max-width:960px){.grid2{grid-template-columns:1fr}}
+
+/* ── GAUGE ───────────────────────────────────────────────────────────────── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 0 4px}
+.gauge-wrap svg{overflow:visible;width:100%;max-width:220px}
+.gauge-label-wrap{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+.gauge-zone-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:var(--radius-full);font-size:0.72rem;font-weight:600}
+.gauge-zone-badge.active{font-weight:800;box-shadow:0 0 0 2px currentColor}
+.gz-minor{background:var(--success-light);color:var(--success)}
+.gz-major{background:var(--warning-light);color:var(--warning)}
+.gz-ko-risk{background:var(--orange-light);color:var(--orange)}
+.gz-ko{background:var(--danger-light);color:var(--danger)}
+
+/* ── CLAUSE CARDS ────────────────────────────────────────────────────────── */
+details.req-item{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;overflow:hidden;transition:border-color var(--transition-fast)}
+details.req-item.is-ko{border-color:rgba(239,68,68,0.35);background:rgba(239,68,68,0.03)}
+details.req-item summary{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;list-style:none;font-size:0.84rem}
+details.req-item summary::-webkit-details-marker{display:none}
+details.req-item summary .req-num{font-family:var(--font-mono);font-weight:700;color:var(--brand-primary)}
+details.req-item summary .req-title{flex:1;color:var(--text-secondary);font-size:0.78rem}
+details.req-item summary .chevron{color:var(--text-muted);font-size:0.7rem;margin-left:auto;transition:transform var(--transition-fast)}
+details.req-item[open] summary .chevron{transform:rotate(90deg)}
+.req-body{padding:12px 14px 14px;border-top:1px solid var(--border)}
+.req-texte{font-size:0.8rem;color:var(--text-secondary);line-height:1.6;margin-bottom:10px}
+.req-nc-example{background:var(--bg-elevated);border-left:3px solid var(--border-active);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 12px;font-size:0.76rem;color:var(--text-muted);font-style:italic;line-height:1.5}
+.req-nc-example strong{color:var(--text-secondary);font-style:normal}
+/* ── Recommandation sections ── */
+.reco-section-title{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin:16px 0 8px;display:flex;align-items:center;gap:6px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.reco-ifs-block{background:var(--bg-elevated);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:8px;border:1px solid var(--border)}
+.reco-ifs-block.nc-ex{border-left:3px solid var(--warning)}
+.reco-ifs-label{font-size:0.68rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px}
+.reco-ifs-text{font-size:0.8rem;color:var(--text-secondary);line-height:1.7;white-space:pre-wrap;font-style:italic}
+/* ── Context analysis chips ── */
+.ctx-panel{margin:8px 0;padding:12px 14px;border-radius:var(--radius-md);background:var(--bg-elevated);border:1px solid var(--border)}
+.ctx-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px}
+.ctx-row:last-child{margin-bottom:0}
+.ctx-row-label{font-size:0.67rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;min-width:84px;padding-top:4px;display:flex;align-items:center;gap:4px}
+.ctx-row-label.agg{color:var(--danger)}
+.ctx-row-label.mit{color:var(--success)}
+.ctx-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ctx-chip{font-size:0.71rem;padding:2px 9px;border-radius:var(--radius-full);font-weight:600}
+.ctx-chip.agg{background:var(--danger-light);color:var(--danger)}
+.ctx-chip.mit{background:var(--success-light);color:var(--success)}
+.ctx-chip.none{color:var(--text-muted);font-weight:400;font-style:italic;font-size:0.76rem}
+/* ── IFS interpretation note ── */
+.ifs-note{font-size:0.8rem;color:var(--text-secondary);line-height:1.75;padding:12px 14px;background:var(--info-light);border-left:3px solid var(--info);border-radius:0 var(--radius-md) var(--radius-md) 0;margin:8px 0}
+
+/* ── SIMILAR CASES ───────────────────────────────────────────────────────── */
+.cases-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;grid-auto-rows:minmax(230px,auto)}
+/* ── Flip card ── */
+.case-flip-wrap{perspective:1200px;min-height:230px}
+.case-card{position:relative;transform-style:preserve-3d;transition:transform 0.5s cubic-bezier(.4,0,.2,1);min-height:230px;height:100%;cursor:pointer}
+.case-card.flipped{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid var(--border);border-radius:var(--radius-md);padding:13px;display:flex;flex-direction:column;background:var(--bg-surface)}
+.card-face.face-back{transform:rotateY(180deg);overflow:hidden}
+.case-card.is-ko .card-face{border-color:rgba(239,68,68,0.22)}
+.case-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.case-supplier{font-weight:600;font-size:0.82rem;line-height:1.3;flex:1}
+.case-meta{font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:7px;display:flex;gap:10px;flex-wrap:wrap}
+.case-clauses{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
+.case-clause-tag{font-size:0.65rem;font-family:var(--font-mono);font-weight:600;padding:1px 6px;border-radius:var(--radius-full);background:var(--bg-elevated);color:var(--text-muted);border:1px solid var(--border)}
+.case-clause-tag.ko-clause{background:var(--danger-light);color:var(--danger)}
+.case-clause-tag.ch-match{background:var(--info-light);color:var(--info)}
+.case-excerpt{font-size:0.76rem;color:var(--text-secondary);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.flip-hint{margin-top:auto;padding-top:7px;font-size:0.67rem;color:var(--text-muted);display:flex;align-items:center;gap:5px;justify-content:flex-end;border-top:1px solid var(--border);flex-shrink:0}
+.back-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-shrink:0}
+.back-full-text{font-size:0.76rem;color:var(--text-secondary);line-height:1.65;flex:1;overflow-y:auto;padding-right:2px}
+.flip-back-btn{margin-top:8px;padding:5px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.73rem;color:var(--text-secondary);cursor:pointer;font-family:var(--font-ui);display:flex;align-items:center;gap:6px;flex-shrink:0}
+.flip-back-btn:hover{border-color:var(--border-active);color:var(--text-primary)}
+.sim-badge{font-family:var(--font-mono);font-size:0.68rem;font-weight:700;color:var(--brand-primary);white-space:nowrap}
+.match-chapter-tag{font-size:0.62rem;color:var(--info);font-family:var(--font-mono);white-space:nowrap}
+
+/* ── RECOMMENDATION ──────────────────────────────────────────────────────── */
+.reco-score-bar{height:3px;border-radius:2px;background:var(--bg-elevated);margin-bottom:14px;overflow:hidden}
+.reco-fill{height:100%;border-radius:2px;transition:width 0.6s ease}
+.reco-text{font-size:0.875rem;line-height:1.75;color:var(--text-secondary)}
+.reco-text strong{color:var(--text-primary)}
+.reco-text .hl{background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 6px;font-family:var(--font-mono);font-size:0.78rem;color:var(--brand-glow);white-space:nowrap}
+
+/* ── SPINNER / EMPTY ─────────────────────────────────────────────────────── */
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--brand-primary);border-radius:50%;animation:spin 0.75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;color:var(--text-muted);font-size:0.85rem}
+.loading-overlay.active{display:flex}
+.empty-hint{display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px;color:var(--text-muted);text-align:center}
+.empty-hint i{font-size:2rem;opacity:0.2}
+.empty-hint p{font-size:0.82rem;max-width:320px}
+
+/* ── FILE PROTOCOL WARNING ──────────────────────────────────────────────── */
+.file-warning{display:none;background:var(--warning-light);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-md);padding:14px 16px;font-size:0.82rem;color:var(--warning);margin-bottom:16px;line-height:1.6}
+.file-warning code{font-family:var(--font-mono);background:rgba(245,158,11,0.15);padding:2px 6px;border-radius:3px}
+
+/* ── PRINT ───────────────────────────────────────────────────────────────── */
+/* ── GROQ AI PANEL ──────────────────────────────────────────────────────── */
+.groq-panel{background:var(--bg-surface);border:1px solid var(--ai-accent-border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;margin-top:16px}
+.groq-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#8B5CF6,#6366F1)}
+.groq-panel-head{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.groq-panel-head h3{font-size:0.88rem;font-weight:700}
+.groq-panel-head i.groq-icon{color:var(--purple);font-size:0.85rem;width:16px}
+.groq-badge{margin-left:auto;font-family:var(--font-mono);font-size:0.65rem;font-weight:600;background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:var(--radius-full);border:1px solid var(--ai-accent-border)}
+.groq-loading{display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:0.82rem;padding:8px 0}
+.groq-spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 0.75s linear infinite;flex-shrink:0}
+.groq-error{font-size:0.8rem;color:var(--danger);background:var(--danger-light);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-md);padding:10px 14px;line-height:1.6}
+.groq-section{margin-bottom:14px}
+.groq-section:last-child{margin-bottom:0}
+.groq-section-title{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--purple);margin-bottom:6px;display:flex;align-items:center;gap:5px;padding-bottom:5px;border-bottom:1px solid var(--ai-accent-border)}
+.groq-text{font-size:0.855rem;line-height:1.75;color:var(--text-secondary)}
+.groq-text strong{color:var(--text-primary)}
+.groq-disclaimer{margin-top:12px;font-size:0.67rem;color:var(--text-muted);font-family:var(--font-mono)}
+
+@media print{
+  .sidebar,.top-header,.actions-row,.btn,.reco-score-bar{display:none!important}
+  .app{display:block}
+  .main-wrap{display:block}
+  .content{padding:0}
+  body,[data-theme]{background:white!important;color:black!important}
+  [data-theme]{--bg-surface:white;--bg-elevated:#f5f5f5;--text-primary:#111;--text-secondary:#444;--text-muted:#777;--border:#ddd;--brand-primary:#4f46e5}
+  .card{border:1px solid #ccc;page-break-inside:avoid;box-shadow:none;margin-bottom:12px}
+  .print-header{display:block!important;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:16px}
+  /* ── Groq AI panel print ── */
+  .groq-panel{border:1px solid #b5a8e8;margin-top:12px;page-break-inside:avoid}
+  .groq-panel::before{display:none}
+  .groq-loading,.groq-error{display:none!important}
+  .groq-badge{display:none}
+  /* ── Fix cartes flip : désactiver la 3D, n'afficher que la face avant ── */
+  .case-flip-wrap{perspective:none!important;min-height:0!important}
+  .case-card{transform:none!important;transform-style:flat!important;position:static!important;min-height:0!important}
+  .card-face{position:static!important;-webkit-backface-visibility:visible!important;backface-visibility:visible!important}
+  .card-face.face-back{display:none!important}
+  .flip-back-btn{display:none!important}
+  @page{size:A4 portrait;margin:1.5cm}
+}
+.print-header{display:none}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media(max-width:800px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── SIDEBAR ──────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <i class="fas fa-microscope logo-icon"></i>
+    <div>
+      <div class="logo-text">NC Analyzer</div>
+      <div class="logo-sub">IFS FOOD V8</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-label">Navigation</div>
+      <a href="IFSSUSPENSIONV6_PERFORMANCE.html" class="nav-item">
+        <i class="fas fa-chart-line"></i> Dashboard Suspensions
+      </a>
+      <a href="NC_ANALYZER.html" class="nav-item active">
+        <i class="fas fa-microscope"></i> NC Analyzer
+      </a>
+      <a href="GUIDE.html" class="nav-item">
+        <i class="fas fa-book-open"></i> Guide utilisateur
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Référentiel chargé</div>
+      <div class="nav-stat"><strong id="s-reqs">—</strong> exigences IFS v8</div>
+      <div class="nav-stat"><strong id="s-ko">—</strong> KO identifiés</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Base SUSPENSION</div>
+      <div class="nav-stat"><strong id="s-cases">—</strong> cas indexés</div>
+      <div class="nav-stat"><strong id="s-ko-cases">—</strong> suspensions KO</div>
+      <div class="nav-stat"><strong id="s-maj-cases">—</strong> suspensions Majeures</div>
+    </div>
+
+    <!-- ── AIDE IA (Groq) ───────────────────────────────────────────── -->
+    <div class="nav-section" id="groq-nav-section">
+      <div class="nav-label" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between"
+           onclick="toggleGroqSettings()">
+        <span><i class="fas fa-brain" style="margin-right:6px"></i>Aide IA (Groq)</span>
+        <i class="fas fa-chevron-right" id="groq-chevron" style="font-size:0.65rem;transition:transform 0.2s"></i>
+      </div>
+      <div id="groq-settings-panel" style="display:none;padding:0 12px 8px">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;font-size:0.8rem;color:var(--text-secondary)">
+          <input type="checkbox" id="groq-enabled" onchange="saveGroqSettings()"
+                 style="accent-color:var(--purple);width:14px;height:14px">
+          Activer l'analyse IA
+        </label>
+        <div style="margin:6px 0">
+          <div style="font-size:0.67rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:4px">Clé API Groq</div>
+          <div style="position:relative">
+            <input type="password" id="groq-key" placeholder="gsk_…" oninput="saveGroqSettings()"
+                   style="width:100%;padding:6px 32px 6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);color:var(--text-primary);font-family:var(--font-mono);font-size:0.72rem;outline:none;box-sizing:border-box">
+            <button type="button" onclick="toggleKeyVisibility()"
+                    style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:0.75rem;padding:2px">
+              <i class="fas fa-eye" id="groq-eye-icon"></i>
+            </button>
+          </div>
+        </div>
+        <div style="margin:6px 0">
+          <div style="font-size:0.67rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:4px">Modèle</div>
+          <select id="groq-model" onchange="saveGroqSettings()"
+                  style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);color:var(--text-primary);font-size:0.76rem;outline:none;cursor:pointer">
+            <option value="llama-3.3-70b-versatile">llama-3.3-70b — Qualité ★★★</option>
+            <option value="openai/gpt-oss-120b">gpt-oss-120b — Rapide ★★★</option>
+            <option value="openai/gpt-oss-20b">gpt-oss-20b — Ultra-rapide ★★</option>
+            <option value="llama-3.1-8b-instant">llama-3.1-8b — Économique ★</option>
+          </select>
+        </div>
+        <div id="groq-cors-warn" style="display:none;font-size:0.71rem;color:var(--warning);background:var(--warning-light);border-radius:var(--radius-sm);padding:6px 8px;margin-top:6px;line-height:1.5">
+          <i class="fas fa-exclamation-triangle"></i>
+          Mode <code style="font-size:0.68rem">file://</code> : Chrome bloque les appels API.
+          Utilisez <code style="font-size:0.68rem">python -m http.server 8080</code>
+        </div>
+        <div style="font-size:0.67rem;color:var(--text-muted);margin-top:6px;line-height:1.45">
+          Clé stockée uniquement dans votre navigateur (localStorage).
+        </div>
+      </div>
+    </div>
+
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <i class="fas fa-moon" id="theme-icon"></i>
+      <span id="theme-label">Mode clair</span>
+    </button>
+    <div class="status-bar">
+      <div class="dot loading" id="s-dot"></div>
+      <span id="s-text">Chargement…</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ──────────────────────────────────────────────────────────────── -->
+<div class="main-wrap">
+  <header class="top-header">
+    <div class="header-left">
+      <h1>Analyseur de Non-Conformités</h1>
+      <span class="badge-pill">IFS Food v8</span>
+    </div>
+    <div class="header-right">
+      <span><strong id="h-cases">—</strong> cas</span>
+      <span style="color:var(--border)">|</span>
+      <span><strong id="h-ko">—</strong> KO</span>
+      <span style="color:var(--border)">|</span>
+      <span><strong id="h-reqs">—</strong> exigences</span>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- Avertissement file:// -->
+    <div class="file-warning" id="file-warn">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong> Attention :</strong> l'outil est ouvert depuis le système de fichiers (<code>file://</code>).
+      Pour charger les données, utilisez un serveur local : <code>python -m http.server 8080</code>
+      puis ouvrez <code>http://localhost:8080/NC_ANALYZER.html</code>
+    </div>
+
+    <!-- Rapport print (caché à l'écran) -->
+    <div class="print-header" id="print-header"></div>
+
+    <!-- ── INPUT ── -->
+    <div class="card">
+      <div class="card-head">
+        <i class="fas fa-edit"></i>
+        <h3>Décrire la situation de non-conformité</h3>
+      </div>
+      <textarea id="nc-input" class="nc-textarea"
+        placeholder="Décrivez la non-conformité observée. Mentionnez la clause IFS si connue (ex: 4.18.1), la nature du constat, les preuves observées et l'impact potentiel…"
+        oninput="onInput()"></textarea>
+      <div id="detected-clauses" class="detected-strip"></div>
+      <div class="actions-row">
+        <button class="btn btn-primary" id="btn-analyze" onclick="analyze()" disabled>
+          <i class="fas fa-search-plus"></i> Analyser
+        </button>
+        <button class="btn btn-ghost" onclick="clearAll()">
+          <i class="fas fa-times"></i> Effacer
+        </button>
+      </div>
+    </div>
+
+    <!-- ── LOADING ── -->
+    <div class="loading-overlay" id="loading">
+      <div class="spinner"></div>
+      <span>Analyse en cours…</span>
+    </div>
+
+    <!-- ── RESULTS ── -->
+    <div id="results" style="display:none">
+
+      <!-- Score + Clauses -->
+      <div class="grid2" style="margin-top:16px">
+
+        <!-- Score gauge -->
+        <div class="card" style="margin-top:0">
+          <div class="card-head"><i class="fas fa-tachometer-alt"></i><h3>Score de risque</h3></div>
+          <div class="gauge-wrap" id="gauge-wrap"></div>
+          <div class="gauge-label-wrap" id="gauge-zones"></div>
+        </div>
+
+        <!-- Clauses IFS -->
+        <div class="card" style="margin-top:0">
+          <div class="card-head">
+            <i class="fas fa-book-open"></i>
+            <h3>Clauses IFS identifiées</h3>
+            <span class="count-pill" id="clauses-count">0</span>
+          </div>
+          <div id="clauses-detail">
+            <div class="empty-hint"><i class="fas fa-tag"></i><p>Aucune référence de clause détectée dans le texte.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Similar Cases -->
+      <div class="card">
+        <div class="card-head">
+          <i class="fas fa-history"></i>
+          <h3>Cas similaires dans SUSPENSION</h3>
+          <span class="count-pill" id="cases-count">0 / 711</span>
+        </div>
+        <div id="similar-cases">
+          <div class="empty-hint"><i class="fas fa-folder-open"></i><p>Aucun cas similaire trouvé.</p></div>
+        </div>
+      </div>
+
+      <!-- Recommendation -->
+      <div class="card">
+        <div class="card-head"><i class="fas fa-lightbulb"></i><h3>Recommandation de cotation</h3></div>
+        <div class="reco-score-bar"><div class="reco-fill" id="reco-bar"></div></div>
+        <div id="reco-text" class="reco-text"></div>
+        <div class="actions-row" style="margin-top:16px">
+          <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Imprimer / PDF
+          </button>
+          <button class="btn" id="btn-copy" onclick="copyReco()">
+            <i class="fas fa-copy"></i> Copier la recommandation
+          </button>
+        </div>
+      </div>
+
+      <!-- ── GROQ AI PANEL ── -->
+      <div id="groq-result-panel" style="display:none"></div>
+
+    </div><!-- /results -->
+  </div><!-- /content -->
+</div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<script src="nc_derived.js" onerror="window.__DERIVED_MISSING=true"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════
+let ncIndex = [];       // nc_index.json
+let reqMap  = {};       // ifs_food_v8_fr.json flattened: { "4.18.1": req }
+
+// ── Constantes dérivées (injectées par nc_derived.js / build_nc_index.py)
+// Fallback mode dégradé si nc_derived.js non chargé (server mode sans build)
+const KEYWORD_IDF_DATA     = (typeof __KEYWORD_IDF     !== 'undefined') ? __KEYWORD_IDF     : {};
+const MAJOR_CLAUSES_DATA   = (typeof __MAJOR_CLAUSES   !== 'undefined') ? __MAJOR_CLAUSES   : {};
+const CLAUSE_SEVERITY_DATA = (typeof __CLAUSE_SEVERITY !== 'undefined') ? __CLAUSE_SEVERITY : {};
+const CLASSIFIER_DATA      = (typeof __CLASSIFIER      !== 'undefined') ? __CLASSIFIER      : null;
+
+const KO_REQS = new Set([
+  "1.2.1","2.3.9.1","3.2.2","4.1.3","4.2.1.3",
+  "4.12.1","4.18.1","5.1.1","5.9.1","5.11.3"
+]);
+
+// Severity weights (mirrors build_nc_index.py)
+const SEVERITY = {
+  "ccp":2.0,"point critique":2.0,"critical control point":2.0,"critical control":2.0,
+  "traçabilité":1.9,"traceability":1.9,"tracabilite":1.9,"tracabilité":1.9,
+  "haccp":1.8,"analyse de risque":1.8,"hazard analysis":1.8,"plan haccp":1.8,
+  "contamination":1.5,"sécurité alimentaire":1.5,"food safety":1.5,
+  "cross contamination":1.5,"cross-contamination":1.5,
+  "allergène":1.4,"allergen":1.4,
+  "risque santé":1.3,"health risk":1.3,"intoxication":1.3,
+  "not aware":1.2,"pas au courant":1.2,"no knowledge":1.2,"responsabilités":1.2,
+  "corps étrangers":1.1,"foreign matter":1.1,"foreign body":1.1,
+  "listeria":1.1,"salmonella":1.1,"pathogène":1.1,"pathogen":1.1,
+  "majeure":1.0,"major":1.0,
+  "fraude":0.9,"fraud":0.9,"falsification":0.9,"food fraud":0.9,
+  "non documenté":0.8,"not documented":0.8,"not available":0.8,"no records":0.8,
+  "hygiène":0.7,"hygiene":0.7,"nettoyage":0.7,"cleaning":0.7,
+  "nuisibles":0.6,"nuisible":0.6,"pest":0.6,"rodent":0.6,"insecte":0.6,"insect":0.6,
+  "infestation":0.9,"campagnol":0.9,"rongeur":0.8,"rat":0.7,"souris":0.7,"mulot":0.8,
+  "blatte":0.8,"cafard":0.8,"charançon":0.7,"moustique":0.5,"mouche":0.5,
+  "surveillance":0.5,"monitoring":0.5,"contrôle":0.5
+};
+
+// Regex nuisible (FR+EN) — déclarée ici pour être disponible avant les fonctions Groq
+const PEST_RX = /\b(campagnol|rongeur|souris|mulot|rat\b|blatte|cafard|infestation|nuisible\b|insecte\b|rodent\b|insect\b)\b/i;
+// Synonymes corpus pour l'expansion du vecteur de similarité
+const PEST_CORPUS_SYNS = ['nuisibles','pest','rodent','insecte','insect','infestation'];
+
+// Max possible severity score — adapté selon présence IDF
+// Sans IDF (fallback) : TF×weight seul → seuil 0.07
+// Avec IDF (corpus réel, IDF≈3) : TF×weight×IDF → seuil 0.22
+const MAX_SEVERITY = Object.keys(KEYWORD_IDF_DATA).length > 0 ? 0.22 : 0.07;
+
+// IFS clause regex — segments 1-5 . 1-21 . 1-15 (optional 3rd)
+const CLAUSE_RX = /(?<![.\d])([1-5]\.\d{1,2}(?:\.\d{1,2})?)(?![.\d])/g;
+
+// ── CONTEXT SIGNAL DICTIONARIES ──────────────────────────────────────────
+const AGGRAVATING_FACTORS = [
+  // ── Zone de production
+  { key:'zone de production',      label:'Zone de production impliquée' },
+  { key:'zone de fabrication',     label:'Zone de production impliquée' },
+  { key:'zone de conditionnement', label:'Zone de conditionnement impliquée' },
+  { key:'production area',         label:'Production area' },
+  { key:'processing area',         label:'Processing area' },
+  { key:'high care',               label:'Zone High-Care' },
+  { key:'haute soins',             label:'Zone Haute-Soins' },
+  { key:'prêts à manger',          label:'Zone produits RTE / PAM' },
+  { key:'prets a manger',          label:'Zone produits RTE / PAM' },
+  { key:'rte',                     label:'Zone produits RTE' },
+  // ── Produits exposés
+  { key:'produits exposés',        label:'Produits exposés' },
+  { key:'produit exposé',          label:'Produit exposé' },
+  { key:'produits non couverts',   label:'Produits non protégés/couverts' },
+  { key:'produit non couvert',     label:'Produits non protégés/couverts' },
+  { key:'non protégé',             label:'Produits non protégés' },
+  { key:'uncovered products',      label:'Uncovered products' },
+  { key:'open products',           label:'Open products' },
+  // ── Signes d'infestation / nuisibles
+  { key:'infestation active',      label:'Infestation active confirmée' },
+  { key:'active infestation',      label:'Active infestation' },
+  { key:'traces infestation',      label:'Traces d\'infestation' },
+  { key:'signs of infestation',    label:'Signs of infestation' },
+  { key:'signs of pest',           label:'Signs of pest activity' },
+  { key:'fientes',                 label:'Fientes / signes d\'infestation' },
+  { key:'excréments',              label:'Excréments / traces d\'infestation' },
+  { key:'rongeage',                label:'Dégâts de rongeage' },
+  { key:'gnawing',                 label:'Gnawing evidence' },
+  { key:'bait consumption',        label:'Consommation d\'appâts' },
+  { key:'appât consommé',          label:'Consommation d\'appâts' },
+  { key:'appâts consommés',        label:'Consommation d\'appâts' },
+  // ── Absence de blocage / action corrective
+  { key:'aucun blocage',           label:'Absence de blocage produit' },
+  { key:'sans blocage',            label:'Absence de blocage produit' },
+  { key:'pas de blocage',          label:'Absence de blocage produit' },
+  { key:'aucune mesure',           label:'Aucune mesure corrective' },
+  { key:'no action',               label:'Absence d\'action corrective' },
+  { key:'no corrective',           label:'Sans action corrective' },
+  // ── Récurrence
+  { key:'récurrent',               label:'Situation récurrente' },
+  { key:'récurrence',              label:'Récurrence documentée' },
+  { key:'repeated',                label:'Incidents répétés' },
+  { key:'previous incident',       label:'Incidents antérieurs' },
+  { key:'audit précédent',         label:'Signalé à l\'audit précédent' },
+  { key:'last audit',              label:'Noted at last audit' },
+  { key:'similar situation',       label:'Situation similaire déjà constatée' },
+  // ── Documentation absente
+  { key:'non documenté',           label:'Non documenté' },
+  { key:'not documented',          label:'Non documenté' },
+  { key:'no records',              label:'Absence de registres' },
+  { key:'missing records',         label:'Registres manquants' },
+  { key:'enregistrement absent',   label:'Enregistrement absent' },
+  { key:'enregistrements absents', label:'Enregistrements absents' },
+  { key:'aucune analyse de risque',label:'Absence d\'analyse de risque' },
+  // ── Systémique
+  { key:'systémique',              label:'Défaillance systémique' },
+  { key:'systemic failure',        label:'Systemic failure' },
+  // ── Contamination
+  { key:'contamination',           label:'Risque de contamination' },
+  { key:'food safety risk',        label:'Risque sécurité alimentaire' },
+  { key:'déjà expédié',            label:'Produits déjà expédiés' },
+  { key:'already shipped',         label:'Products already shipped' },
+];
+
+const MITIGATING_FACTORS = [
+  { key:'réaction immédiate',   label:'Réaction immédiate du site' },
+  { key:'action immédiate',     label:'Action immédiate engagée' },
+  { key:'mesure immédiate',     label:'Mesure immédiate prise' },
+  { key:'immediate action',     label:'Immediate action taken' },
+  { key:'immediate response',   label:'Immediate response' },
+  { key:'appel au prestataire',    label:'Prestataire spécialisé appelé' },
+  { key:'prestataire contacté',    label:'Prestataire spécialisé consulté' },
+  { key:'prestataire intervenu',   label:'Prestataire spécialisé intervenu' },
+  { key:'prestataire a été',       label:'Prestataire spécialisé intervenu' },
+  { key:'pest control company',    label:'Pest control company called' },
+  { key:'external company',        label:'Prestataire externe intervenu' },
+  { key:'capturé',              label:'Animal capturé / maîtrisé' },
+  { key:'captured',             label:'Pest captured' },
+  { key:'exceptionnel',         label:'Caractère exceptionnel confirmé' },
+  { key:'exceptional',          label:'Exceptional occurrence' },
+  { key:'isolé',                label:'Incident isolé' },
+  { key:'isolated',             label:'Isolated incident' },
+  { key:'non infestation',      label:'Non-infestation confirmée' },
+  { key:'no infestation',       label:'No infestation confirmed' },
+  { key:'non-infestation',      label:'Non-infestation' },
+  { key:'no signs',             label:'Aucun signe d\'infestation' },
+  { key:'aucun signe',          label:'Aucun signe détecté' },
+  { key:'no evidence',          label:'Aucune preuve d\'infestation' },
+  { key:'action corrective',    label:'Action corrective documentée' },
+  { key:'corrective action',    label:'Corrective action documented' },
+  { key:'corrigé',              label:'Situation corrigée' },
+  { key:'corrected',            label:'Issue corrected' },
+  { key:'not in use',           label:'Zone non active / hors production' },
+  { key:'hors production',      label:'Zone hors production' },
+  { key:'hors ligne',           label:'Hors ligne de production' },
+];
+
+// ── IFS CLAUSE INTERPRETATION NOTES ──────────────────────────────────────
+const IFS_CLAUSE_NOTES = {
+  '4.13': `En IFS Food v8, la clause 4.13.4 porte sur l'efficacité du système de surveillance antiparasitaire dans son ensemble. La présence d'un nuisible — même isolée, même sans infestation avérée — est interprétée comme une défaillance de ce système. La jurisprudence des suspensions documentées montre que la réaction immédiate et la confirmation d'absence d'infestation sont des éléments de contexte importants (à documenter dans le plan correctif), mais ne modifient pas la cotation : l'observation d'un nuisible dans les zones de stockage ou de production reste une NC Majeure 4.13.4, car elle révèle une vulnérabilité du dispositif antiparasitaire.`,
+  '4.18': `La clause 4.18.1 est un Knock-Out IFS Food v8 (KO 10). Elle impose que l'entreprise soit en mesure de retracer tous les lots de matières premières jusqu'aux produits finis (amont) et tous les lots de produits finis jusqu'aux matières premières (aval), en moins de 4 heures sur demande de l'auditeur. Toute défaillance remettant en cause cette capacité — registres inexistants, système non testé, exercice de traçabilité échoué — entraîne la suspension automatique du certificat.`,
+  '2.3': `La clause 2.3.9.1 est un Knock-Out IFS Food v8 (KO 2). Elle concerne les Points Critiques pour la Maîtrise (CCP) du plan HACCP. Toute défaillance dans la définition, la surveillance ou la documentation d'un CCP — limite critique non définie, enregistrements de monitoring manquants, actions correctives non implémentées — constitue un KO avec suspension automatique du certificat.`,
+  '3.2': `La clause 3.2.2 est un Knock-Out IFS Food v8 (KO 3). Elle porte sur l'hygiène du personnel en contact direct avec les produits (lavage des mains, tenue de travail, blessures). Des manquements caractérisés et objectivés par l'auditeur, exposant directement les produits à une contamination, constituent un KO.`,
+  '4.2': `La clause 4.2.1.3 est un Knock-Out IFS Food v8 (KO 5). Elle impose que les matières premières et matériaux en contact alimentaire soient gérés de façon à exclure tout risque de contamination croisée allergénique. Un manquement démontré — absence de ségrégation, équipements partagés sans nettoyage validé — entraîne la suspension.`,
+  '4.1': `La clause 4.1.3 est un Knock-Out IFS Food v8 (KO 4). Elle porte sur la conception des locaux pour prévenir les contaminations (zones propres/souillées, matériaux, flux). Des défaillances structurelles majeures objectivées lors de l'audit constituent un KO.`,
+  '4.12': `La clause 4.12.1 est un Knock-Out IFS Food v8 (KO 7). Elle concerne les systèmes de contrôle physique des corps étrangers (détecteurs de métaux, tamis, aimants) sur les lignes de production. L'absence de contrôle actif ou une défaillance non détectée et non documentée constituent un KO.`,
+  '5.1': `La clause 5.1.1 est un Knock-Out IFS Food v8 (KO 6). Elle impose le respect des exigences légales applicables dans les pays de production et de vente (droit alimentaire, limites de contaminants, étiquetage légal). Toute NC légale avérée — dépassement de limite légale, étiquetage illégal — entraîne la suspension.`,
+  '5.9': `La clause 5.9.1 est un Knock-Out IFS Food v8 (KO 8). Elle porte sur la capacité à gérer les alertes et rappels produits (procédure documentée, testée, opérationnelle). L'incapacité à initier, simuler et documenter un rappel produit dans les délais entraîne la suspension.`,
+  '5.11': `La clause 5.11.3 est un Knock-Out IFS Food v8 (KO 9). Elle concerne la validation et la vérification des mesures de maîtrise critiques du plan HACCP. L'absence de validation ou une vérification jamais effectuée constitue un KO.`,
+  '1.2': `La clause 1.2.1 est un Knock-Out IFS Food v8 (KO 1). Elle porte sur l'intégrité de l'audit et les engagements de la direction. La découverte d'une fraude, d'une falsification de données d'audit, ou d'un obstacle délibéré à l'audit de la part de l'entreprise entraîne la suspension immédiate avec signalement à IFS Management.`,
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// GROQ AI CONFIG
+// ══════════════════════════════════════════════════════════════════════════
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_TIMEOUT  = 30000;
+const GROQ_MODELS   = {
+  'llama-3.3-70b-versatile': 'llama-3.3-70b',
+  'openai/gpt-oss-120b':     'gpt-oss-120b',
+  'openai/gpt-oss-20b':      'gpt-oss-20b',
+  'llama-3.1-8b-instant':    'llama-3.1-8b',
+};
+
+// ── Settings persistence ──────────────────────────────────────────────────
+function loadGroqSettings() {
+  const keyEl   = document.getElementById('groq-key');
+  const modelEl = document.getElementById('groq-model');
+  const enEl    = document.getElementById('groq-enabled');
+  if (!keyEl) return;
+  keyEl.value     = localStorage.getItem('nca_groq_key')   || '';
+  modelEl.value   = localStorage.getItem('nca_groq_model') || 'llama-3.3-70b-versatile';
+  enEl.checked    = localStorage.getItem('nca_groq_enabled') === 'true';
+  if (location.protocol === 'file:') {
+    const warn = document.getElementById('groq-cors-warn');
+    if (warn) warn.style.display = 'block';
+  }
+}
+function saveGroqSettings() {
+  const key = document.getElementById('groq-key')?.value?.trim() || '';
+  localStorage.setItem('nca_groq_key',     key);
+  localStorage.setItem('nca_groq_model',   document.getElementById('groq-model')?.value || 'llama-3.3-70b-versatile');
+  localStorage.setItem('nca_groq_enabled', document.getElementById('groq-enabled')?.checked ? 'true' : 'false');
+}
+function toggleGroqSettings() {
+  const p = document.getElementById('groq-settings-panel');
+  const c = document.getElementById('groq-chevron');
+  if (!p) return;
+  const open = p.style.display === 'none';
+  p.style.display   = open ? 'block' : 'none';
+  c.style.transform = open ? 'rotate(90deg)' : '';
+}
+function toggleKeyVisibility() {
+  const inp = document.getElementById('groq-key');
+  const ico = document.getElementById('groq-eye-icon');
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type      = show ? 'text'         : 'password';
+  ico.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+}
+
+// ── Prompt builder ────────────────────────────────────────────────────────
+// Mapping thématique → clauses IFS v8 connues (pour enrichir le prompt Groq quand aucune clause explicite)
+const SEMANTIC_CLAUSE_HINTS = [
+  { rx: PEST_RX, clauses: ['4.9.1.1','4.9.5.1','4.9.6.1'] },
+  { rx: /\b(corps.?étrangers?|foreign.?(?:body|matter))\b/i, clauses: ['5.9.1'] },
+  { rx: /\b(allergène|allergen|cross.?contam)\b/i,           clauses: ['5.3.2','4.14.3'] },
+  { rx: /\b(haccp|ccp|point.?critique)\b/i,                  clauses: ['2.2.3'] },
+  { rx: /\b(traçabilité|traceability)\b/i,                   clauses: ['4.18.1'] },
+  { rx: /\b(nettoyage|désinfection|cleaning)\b/i,            clauses: ['4.10.2'] },
+  { rx: /\b(température|froid|surgel|congel)\b/i,            clauses: ['4.8.1'] },
+];
+
+function inferGroqClauses(text) {
+  if (!reqMap) return [];
+  const result = [];
+  for (const { rx, clauses } of SEMANTIC_CLAUSE_HINTS) {
+    if (!rx.test(text)) continue;
+    for (const num of clauses) {
+      const req = reqMap[num];
+      if (req && !result.find(r => r._num === num)) {
+        result.push({ ...req, _num: num });
+      }
+    }
+    if (result.length >= 2) break;
+  }
+  return result;
+}
+
+function buildGroqPrompt(text, matchedClauses, top5, signals) {
+  // Enrichir avec clauses inférées sémantiquement si aucune clause explicite
+  const effectiveClauses = matchedClauses.length > 0
+    ? matchedClauses
+    : inferGroqClauses(text);
+
+  const clauseCtx = effectiveClauses.slice(0, 2).map(req => {
+    const texte = (req.texte || '').substring(0, 350);
+    const ncEx  = (req.onglets?.exemplesNonConformites || '').substring(0, 250);
+    return `Clause ${req._num} :\n${texte}${ncEx ? '\nExemples NC IFS v8 : ' + ncEx : ''}`;
+  }).join('\n\n');
+
+  const casesCtx = top5.slice(0, 3).map((e, i) => {
+    const txt = (e.full_text || e.summary || '').substring(0, 450);
+    return `Cas ${i+1} [${e.type}] — ${e.supplier} (${e.country}, ${(e.date||'').substring(0,4)}):\n${txt}`;
+  }).join('\n---\n');
+
+  const sigCtx = signals
+    ? `Clause : ${signals.S_clause}% (${signals.clauseType}) | Sévérité : ${signals.S_severity}% | Historique : ${signals.S_history}%${signals.S_ml != null ? ' | ML : ' + signals.S_ml + '%' : ''} | Multiplicateur : ×${(signals.mult/100).toFixed(2)}`
+    : 'Non disponible';
+
+  const system = `Tu es un expert auditeur IFS Food v8 certifié, spécialisé dans la qualification des non-conformités et la jurisprudence des suspensions de certification.
+Réponds EXCLUSIVEMENT en français, de façon concise et structurée, en 3 sections courtes avec ces titres exacts en gras :
+
+**SENS DU CONSTAT**
+Nature réelle de la défaillance, quelle exigence IFS est mise en cause et pourquoi.
+
+**QUALIFICATION PROBABLE**
+NC Mineure, NC Majeure ou KO ? Argument direct basé sur la clause IFS et les cas similaires de la base SUSPENSION.
+
+**POINTS DE VIGILANCE**
+Ce qui aurait pu aggraver ou atténuer la cotation. Formulation attendue dans le plan d'actions correctives IFS.
+
+Règles strictes : maximum 100 mots par section — ton professionnel d'auditeur — pas d'introduction générale — pas de conclusion récapitulative.`;
+
+  const user = `CONSTAT DE NON-CONFORMITÉ :\n${text}\n\nCLAUSES IFS FOOD v8 CONCERNÉES :\n${clauseCtx || 'Aucune clause explicitement détectée.'}\n\nCAS SIMILAIRES BASE SUSPENSION :\n${casesCtx || 'Aucun cas similaire trouvé.'}\n\nSIGNAUX ALGORITHMIQUES :\n${sigCtx}`;
+
+  return { system, user };
+}
+
+// ── Core Groq API call ────────────────────────────────────────────────────
+async function groqAnalyze(text, matchedClauses, top5, signals) {
+  const key   = localStorage.getItem('nca_groq_key')   || '';
+  const model = localStorage.getItem('nca_groq_model') || 'llama-3.3-70b-versatile';
+
+  if (!key) {
+    renderGroqPanel('error', 'Clé API Groq manquante. Ouvrez le panneau "Aide IA (Groq)" dans la barre latérale pour la renseigner.');
+    return;
+  }
+
+  renderGroqPanel('loading');
+
+  const { system, user } = buildGroqPrompt(text, matchedClauses, top5, signals);
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), GROQ_TIMEOUT);
+
+  try {
+    const resp = await fetch(GROQ_ENDPOINT, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        max_tokens:  700,
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user',   content: user   },
+        ],
+      }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(tid);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const msg = err?.error?.message || `HTTP ${resp.status}`;
+      if (resp.status === 401) renderGroqPanel('error', 'Clé API invalide ou expirée. Vérifiez votre clé sur console.groq.com.');
+      else if (resp.status === 429) renderGroqPanel('error', 'Limite de débit Groq atteinte. Attendez quelques secondes et relancez l\'analyse.');
+      else renderGroqPanel('error', `Erreur API Groq : ${msg}`);
+      return;
+    }
+
+    const data    = await resp.json();
+    const choice  = data?.choices?.[0];
+    const answer  = choice?.message?.content?.trim() || '';
+    const reason  = choice?.finish_reason || '?';
+    console.log('[Groq] finish_reason:', reason, '| content length:', answer.length, '| model:', model);
+    if (answer.length < 15) {
+      renderGroqPanel('error', `Réponse insuffisante du modèle (${answer.length} car., finish: ${reason}). Essayez un autre modèle dans les paramètres Aide IA.`);
+      return;
+    }
+    renderGroqPanel('success', answer, model);
+
+  } catch (err) {
+    clearTimeout(tid);
+    if (err.name === 'AbortError') {
+      renderGroqPanel('error', `Délai d'attente dépassé (${GROQ_TIMEOUT/1000}s). Le modèle est peut-être surchargé — réessayez ou choisissez un modèle plus rapide.`);
+    } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || err.message?.includes('fetch')) {
+      renderGroqPanel('error', `Impossible de joindre l'API Groq. En mode <code>file://</code>, utilisez <code>python -m http.server 8080</code> pour lever la restriction CORS.`);
+    } else {
+      renderGroqPanel('error', `Erreur réseau : ${esc(err.message)}`);
+    }
+  }
+}
+
+// ── Parse LLM 3-section response ─────────────────────────────────────────
+function parseGroqSections(raw) {
+  const defs = [
+    { key: 'SENS',           icon: 'lightbulb',       title: 'Sens du constat'       },
+    { key: 'QUALIFICATION',  icon: 'gavel',           title: 'Qualification probable' },
+    { key: 'VIGILANCE',      icon: 'eye',             title: 'Points de vigilance'   },
+  ];
+  const bodies = Object.fromEntries(defs.map(d => [d.key, []]));
+  let cur = null;
+  for (const line of raw.split('\n')) {
+    const up = line.toUpperCase().replace(/[*_]/g, '');
+    const hit = defs.find(d => up.includes(d.key));
+    if (hit && (line.includes('**') || line.startsWith('#'))) { cur = hit.key; continue; }
+    if (cur) bodies[cur].push(line);
+  }
+  const hasSections = defs.some(d => bodies[d.key].join('').trim());
+  if (!hasSections) return [{ key:'RAW', icon:'comment', title:'Interprétation IA', body: raw }];
+  return defs.map(d => ({ ...d, body: bodies[d.key].join('\n').trim() }));
+}
+
+function formatGroqText(text) {
+  return esc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+}
+
+// ── Render Groq panel ─────────────────────────────────────────────────────
+function renderGroqPanel(state, content, modelId) {
+  const el = document.getElementById('groq-result-panel');
+  if (!el) return;
+  if (state === 'hidden') { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  const modelLabel = modelId ? (GROQ_MODELS[modelId] || modelId) : '';
+
+  if (state === 'loading') {
+    el.innerHTML = `<div class="groq-panel">
+      <div class="groq-panel-head"><i class="fas fa-brain groq-icon"></i><h3>Analyse sémantique IA (Groq)</h3><span class="groq-badge">EN COURS</span></div>
+      <div class="groq-loading"><div class="groq-spinner"></div><span>Interrogation du modèle IA…</span></div>
+    </div>`;
+    return;
+  }
+
+  if (state === 'error') {
+    el.innerHTML = `<div class="groq-panel">
+      <div class="groq-panel-head"><i class="fas fa-brain groq-icon"></i><h3>Analyse sémantique IA (Groq)</h3><span class="groq-badge" style="color:var(--danger);background:var(--danger-light);border-color:rgba(239,68,68,0.25)">ERREUR</span></div>
+      <div class="groq-error"><i class="fas fa-triangle-exclamation"></i> ${content}</div>
+    </div>`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+
+  // success — parse and render 3 sections
+  const sections = parseGroqSections(content);
+  const sectionsHtml = sections.map(s => `
+    <div class="groq-section">
+      <div class="groq-section-title"><i class="fas fa-${s.icon}"></i> ${esc(s.title)}</div>
+      <div class="groq-text">${formatGroqText(s.body)}</div>
+    </div>`).join('');
+
+  el.innerHTML = `<div class="groq-panel">
+    <div class="groq-panel-head"><i class="fas fa-brain groq-icon"></i><h3>Analyse sémantique IA (Groq)</h3>${modelLabel ? `<span class="groq-badge">${esc(modelLabel)}</span>` : ''}</div>
+    ${sectionsHtml}
+    <div class="groq-disclaimer">Analyse IA — complément non contractuel à l'analyse algorithmique</div>
+  </div>`;
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ══════════════════════════════════════════════════════════════════════════
+async function loadData() {
+  // Detect file:// protocol
+  if (location.protocol === 'file:') {
+    document.getElementById('file-warn').style.display = 'block';
+    setStatus('error', 'Serveur local requis');
+    return;
+  }
+
+  setStatus('loading', 'Chargement du référentiel IFS…');
+  try {
+    // Load IFS v8 JSON
+    const ifsRaw = await fetch('ifs_food_v8_fr.json').then(r => r.json());
+    ifsRaw.forEach(chap => {
+      chap.sous_sections.forEach(ss => {
+        ss.exigences.forEach(req => {
+          const key = req.numero.replace(/\*/g,'').trim();
+          // Fix known typo: ".3.9.1" → "2.3.9.1"
+          const fixedKey = key.startsWith('.') ? '2' + key : key;
+          reqMap[fixedKey] = { ...req, ssTitre: ss.titre, chapTitre: chap.titre };
+        });
+      });
+    });
+    const koCount = Object.values(reqMap).filter(r => r.estKO).length;
+    document.getElementById('s-reqs').textContent = Object.keys(reqMap).length;
+    document.getElementById('h-reqs').textContent = Object.keys(reqMap).length;
+    document.getElementById('s-ko').textContent = koCount;
+
+    setStatus('loading', 'Chargement de la base SUSPENSION…');
+
+    // Load nc_index.json
+    ncIndex = await fetch('nc_index.json').then(r => r.json());
+
+    // Pre-parse clause sets for fast Jaccard
+    ncIndex.forEach(e => {
+      e._clauseSet = new Set(e.clauses || []);
+    });
+
+    const koC = ncIndex.filter(e => e.type === 'KO').length;
+    const majC = ncIndex.filter(e => e.type === 'Major').length;
+    document.getElementById('s-cases').textContent = ncIndex.length;
+    document.getElementById('s-ko-cases').textContent = koC;
+    document.getElementById('s-maj-cases').textContent = majC;
+    document.getElementById('h-cases').textContent = ncIndex.length;
+    document.getElementById('h-ko').textContent = koC;
+
+    setStatus('ready', `${ncIndex.length} cas • ${Object.keys(reqMap).length} exigences`);
+    document.getElementById('btn-analyze').disabled = false;
+    loadGroqSettings();
+
+  } catch(err) {
+    setStatus('error', 'Erreur de chargement des données');
+    console.error(err);
+  }
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('s-dot');
+  dot.className = 'dot ' + state;
+  document.getElementById('s-text').textContent = text;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ANALYSIS ENGINE
+// ══════════════════════════════════════════════════════════════════════════
+
+function extractClauses(text) {
+  const matches = [...text.matchAll(CLAUSE_RX)].map(m => m[1]);
+  return [...new Set(matches.filter(c => {
+    const parts = c.split('.');
+    if (parseInt(parts[1]) > 21) return false;
+    if (parts[2] && parseInt(parts[2]) > 15) return false;
+    return true;
+  }))];
+}
+
+// Détection de négation : fenêtre de 55 chars avant la position du keyword
+const NEGATION_RX = /\b(no|not|sans|aucun|aucune|pas|absence|non|never|jamais|without|ni|neither|zero|aucun signe)\s*(\w+\s*){0,3}$/i;
+
+function isNegated(lowerText, kwStart) {
+  const before = lowerText.substring(Math.max(0, kwStart - 55), kwStart);
+  return NEGATION_RX.test(before);
+}
+
+function buildKeywordVector(text) {
+  const lower = removeDiacritics(text.toLowerCase());
+  const words = lower.split(/\W+/).filter(w => w.length > 2);
+  const total = Math.max(words.length, 1);
+  const vec = {};
+  for (const [kw, weight] of Object.entries(SEVERITY)) {
+    const kwNorm = removeDiacritics(kw);
+    let count = 0;
+    let pos = -1;
+    while ((pos = lower.indexOf(kwNorm, pos + 1)) !== -1) {
+      if (!isNegated(lower, pos)) count++;
+    }
+    if (count > 0) {
+      const tf  = count / total;
+      const idf = KEYWORD_IDF_DATA[kw] || 1.0;
+      vec[kw] = tf * weight * idf;
+    }
+  }
+  return vec;
+}
+
+function removeDiacritics(str) {
+  return str.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function parseContext(text) {
+  const lower = removeDiacritics(text.toLowerCase());
+  const agg = AGGRAVATING_FACTORS.filter(f => lower.includes(removeDiacritics(f.key)));
+  const mit = MITIGATING_FACTORS.filter(f  => lower.includes(removeDiacritics(f.key)));
+  // Deduplicate by label (multiple keys can map to same label)
+  const uniq = arr => arr.filter((f, i) => arr.findIndex(g => g.label === f.label) === i);
+  return { aggravating: uniq(agg), mitigating: uniq(mit) };
+}
+
+function getClauseNote(clauseNums) {
+  for (const num of clauseNums) {
+    const ch = chapterOf(num);
+    if (IFS_CLAUSE_NOTES[ch]) return IFS_CLAUSE_NOTES[ch];
+  }
+  return null;
+}
+
+function jaccard(setA, setB) {
+  if (setA.size === 0 && setB.size === 0) return 0;
+  let inter = 0;
+  for (const c of setA) if (setB.has(c)) inter++;
+  return inter / (setA.size + setB.size - inter);
+}
+
+// Chapter = first two dot-segments: "4.13.4" → "4.13"
+function chapterOf(c) { return c.split('.').slice(0, 2).join('.'); }
+
+function chapterJaccard(setA, setB) {
+  if (setA.size === 0 && setB.size === 0) return 0;
+  const chA = new Set([...setA].map(chapterOf));
+  const chB = new Set([...setB].map(chapterOf));
+  let inter = 0;
+  for (const c of chA) if (chB.has(c)) inter++;
+  return inter / (chA.size + chB.size - inter);
+}
+
+function sparseDot(vecA, vecB) {
+  let sum = 0;
+  for (const k in vecA) if (vecB[k]) sum += vecA[k] * vecB[k];
+  return sum;
+}
+
+function sparseNorm(vec) {
+  return Math.sqrt(Object.values(vec).reduce((s, v) => s + v * v, 0));
+}
+
+function cosine(vecA, vecB) {
+  const dot = sparseDot(vecA, vecB);
+  const na = sparseNorm(vecA), nb = sparseNorm(vecB);
+  return (na && nb) ? dot / (na * nb) : 0;
+}
+
+function buildAugmentedVec(inputText, clauses) {
+  const vec = buildKeywordVector(inputText);
+
+  // Expansion sémantique : si nuisible détecté dans le texte, injecter ses synonymes
+  // corpus à 50% pour que la cosine similarity trouve les cas similaires de la base SUSPENSION
+  if (PEST_RX.test(inputText)) {
+    for (const syn of PEST_CORPUS_SYNS) {
+      if (SEVERITY[syn] && !vec[syn]) {
+        vec[syn] = SEVERITY[syn] * 0.5 * (KEYWORD_IDF_DATA[syn] || 1.0);
+      }
+    }
+  }
+
+  // Enrich with IFS v8 clause text + NC examples (40% weight)
+  for (const c of clauses) {
+    const req = reqMap[c];
+    if (!req) continue;
+    const ifsText = (req.texte || '') + ' ' + (req.onglets?.exemplesNonConformites || '');
+    const ifsVec = buildKeywordVector(ifsText);
+    for (const [k, v] of Object.entries(ifsVec)) {
+      vec[k] = (vec[k] || 0) + v * 0.4;
+    }
+  }
+  return vec;
+}
+
+function findSimilar(inputText, topN = 5) {
+  const inputClauses = new Set(extractClauses(inputText));
+  const inputVec = buildAugmentedVec(inputText, inputClauses);
+
+  return ncIndex.map(entry => {
+    const jExact   = jaccard(inputClauses, entry._clauseSet);
+    const jChapter = chapterJaccard(inputClauses, entry._clauseSet);
+    // Exact clause match gets full weight; chapter match gets 55%
+    const simClause = Math.max(jExact, 0.55 * jChapter);
+    const simKw     = cosine(inputVec, entry.kw_vec || {});
+    // Quand aucune clause détectée dans l'entrée, la Jaccard clause = 0 systématiquement.
+    // On bascule sur similarité purement lexicale pour ne pas écraser le signal keyword.
+    const sim = inputClauses.size === 0
+      ? simKw
+      : 0.65 * simClause + 0.35 * simKw;
+    const matchType = jExact > 0 ? 'exact' : jChapter > 0 ? 'chapter' : 'keyword';
+    return { ...entry, similarity: sim, _matchType: matchType };
+  })
+  .filter(e => e.similarity > 0.005)
+  .sort((a, b) => b.similarity - a.similarity)
+  .slice(0, topN);
+}
+
+// Inférence du classifieur pré-entraîné LogReg KO vs Major
+function classifierPredict(inputVec, inputClauses) {
+  const clf = CLASSIFIER_DATA;
+  if (!clf || !clf.vocab || !clf.coef) return -1;
+  const n = clf.vocab.length + (clf.top_clauses || []).length;
+  const feat = new Float32Array(n);
+  for (let i = 0; i < clf.vocab.length; i++) {
+    feat[i] = inputVec[clf.vocab[i]] || 0;
+  }
+  for (let j = 0; j < (clf.top_clauses || []).length; j++) {
+    feat[clf.vocab.length + j] = inputClauses.includes(clf.top_clauses[j]) ? 1.0 : 0;
+  }
+  let norm = 0;
+  for (let i = 0; i < n; i++) norm += feat[i] * feat[i];
+  norm = Math.sqrt(norm) || 1;
+  let logit = clf.intercept;
+  for (let i = 0; i < n; i++) logit += clf.coef[i] * feat[i] / norm;
+  return 1 / (1 + Math.exp(-logit)); // sigmoid → P(KO)
+}
+
+function computeKOScore(inputText, topMatches, ctx) {
+  const inputClauses = extractClauses(inputText);
+  const inputVec = buildAugmentedVec(inputText, new Set(inputClauses));
+
+  // ── Signal 1 : Clause sévérité (KO=1.0 / Major-corpus=0.55 / Major-IFS=0.35)
+  const hasKO      = inputClauses.some(c => KO_REQS.has(c));
+  const hasMajCorp = !hasKO && inputClauses.some(c => (MAJOR_CLAUSES_DATA[c] || 0) >= 5);
+  const hasMajIFS  = !hasKO && !hasMajCorp && inputClauses.some(c => CLAUSE_SEVERITY_DATA[c] === 'Major');
+  // Fallback sémantique : pas de clause explicite mais thème Major IFS détectable
+  const semanticMajor = (!hasKO && !hasMajCorp && !hasMajIFS && inputClauses.length === 0)
+    ? PEST_RX.test(inputText)          ? 'Major-pest'
+    : /\b(corps.?étrangers?|foreign.?(?:body|matter))\b/i.test(inputText) ? 'Major-corps-étranger'
+    : /\b(ccp|point.?critique|critical.?control)\b/i.test(inputText)     ? 'Major-haccp'
+    : null
+    : null;
+  const S_clause = hasKO ? 1.0 : hasMajCorp ? 0.55 : hasMajIFS ? 0.35 : semanticMajor ? 0.30 : 0.0;
+
+  // ── Signal 2 : Densité sévérité TF×IDF×weight (négation filtrée)
+  const weightedSum = Object.values(inputVec).reduce((s, v) => s + v, 0);
+  const S_severity  = Math.min(1.0, weightedSum / MAX_SEVERITY);
+
+  // ── Signal 3 : Historique SUSPENSION
+  const koC  = topMatches.filter(m => m.type === 'KO').length;
+  const majC = topMatches.filter(m => m.type === 'Major').length;
+  const S_history = topMatches.length > 0
+    ? Math.min(1.0, (koC + majC) / topMatches.length) : 0;
+
+  // ── Signal 4 : Langage explicite KO/suspension
+  // S4 : langage KO/suspension explicite — "blocage" accepté seulement s'il n'est PAS nié
+  const S_context = (() => {
+    if (/\bKO\b|\bknock[\s-]?out\b|\bsuspension\b|\bsuspended\b|\bsuspendu\b/i.test(inputText)) return 1.0;
+    // "blocage" ne compte que s'il n'est pas précédé d'une négation (aucun blocage, pas de blocage…)
+    const bm = inputText.match(/\bblocage\b/i);
+    if (bm) {
+      const before = inputText.substring(Math.max(0, bm.index - 25), bm.index);
+      if (!/\b(aucun|pas de|sans|no|absence de)\b/i.test(before)) return 1.0;
+    }
+    return 0.0;
+  })();
+
+  // ── Signal 5 : Classifieur LogReg KO vs Major
+  const S_ml  = classifierPredict(inputVec, inputClauses);
+  const hasML = S_ml >= 0;
+
+  // ── Combinaison linéaire
+  const raw = hasML
+    ? 0.33*S_clause + 0.12*S_severity + 0.28*S_history + 0.07*S_context + 0.20*S_ml
+    : 0.40*S_clause + 0.15*S_severity + 0.35*S_history + 0.10*S_context;
+
+  // ── Multiplicateur contextuel (aggravants +15% / atténuants -8% max)
+  const aggW = Math.min((ctx || {aggravating:[]}).aggravating.length / 3, 1.0);
+  const mitW = Math.min((ctx || {mitigating:[]}).mitigating.length / 3, 1.0);
+  const mult = Math.max(0.75, Math.min(1.30, 1 + 0.15*aggW - 0.08*mitW));
+  const final = Math.min(raw * mult, 1.0);
+
+  return {
+    score: Math.round(final * 100),
+    signals: {
+      S_clause:    Math.round(S_clause   * 100),
+      S_severity:  Math.round(S_severity * 100),
+      S_history:   Math.round(S_history  * 100),
+      S_context:   Math.round(S_context  * 100),
+      S_ml:        hasML ? Math.round(S_ml * 100) : null,
+      mult:        Math.round(mult * 100),
+      clauseType:  hasKO ? 'KO' : hasMajCorp ? 'Major-corpus' : hasMajIFS ? 'Major-IFS' : semanticMajor || 'non-listé',
+    }
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MAIN ANALYSIS ENTRY
+// ══════════════════════════════════════════════════════════════════════════
+async function analyze() {
+  const text = document.getElementById('nc-input').value.trim();
+  if (!text) return;
+
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('loading').classList.add('active');
+
+  await new Promise(r => setTimeout(r, 40)); // repaint
+
+  const top5 = findSimilar(text);
+  const ctx  = parseContext(text);
+  const { score, signals } = computeKOScore(text, top5, ctx);
+  const rawNums = extractClauses(text);
+  const matchedClauses = rawNums.map(n => reqMap[n] ? { ...reqMap[n], _num: n } : null);
+
+  renderGauge(score);
+  renderClauses(matchedClauses.filter(Boolean), rawNums);
+  renderCases(top5);
+  renderReco(score, matchedClauses.filter(Boolean), top5, text, ctx, signals);
+  buildPrintHeader(score, text);
+
+  // Reset panneau IA de l'analyse précédente
+  renderGroqPanel('hidden');
+
+  document.getElementById('loading').classList.remove('active');
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Lancer Groq si activé — asynchrone, ne bloque pas l'affichage algorithmique
+  if (localStorage.getItem('nca_groq_enabled') === 'true' && localStorage.getItem('nca_groq_key')) {
+    groqAnalyze(text, matchedClauses.filter(Boolean), top5, signals);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RENDER: GAUGE
+// ══════════════════════════════════════════════════════════════════════════
+function renderGauge(score) {
+  const R = 72, cx = 100, cy = 98;
+  const HALF = Math.PI * R; // ≈ 226.2
+  const fill = (score / 100) * HALF;
+
+  // Color by zone
+  const color = score >= 76 ? '#EF4444'
+              : score >= 56 ? '#F97316'
+              : score >= 31 ? '#F59E0B'
+              : '#10B981';
+
+  // Path: upper semi-circle, sweep=1 (clockwise in SVG = upward arc)
+  const path = `M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`;
+
+  document.getElementById('gauge-wrap').innerHTML = `
+    <svg viewBox="0 0 200 106">
+      <!-- Background track -->
+      <path d="${path}" fill="none" stroke="var(--bg-elevated)" stroke-width="15" stroke-linecap="round"/>
+      <!-- Color zones (subtle) -->
+      <path d="M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx + R*Math.cos(Math.PI*0.69)} ${cy - R*Math.sin(Math.PI*0.69)}"
+            fill="none" stroke="rgba(16,185,129,0.15)" stroke-width="15" stroke-linecap="round"/>
+      <!-- Score fill -->
+      <path d="${path}" fill="none" stroke="${color}" stroke-width="15" stroke-linecap="round"
+            stroke-dasharray="${fill.toFixed(2)} 9999"
+            style="transition:stroke-dasharray 0.5s ease,stroke 0.3s ease"/>
+      <!-- Score text -->
+      <text x="${cx}" y="${cy-8}" fill="var(--text-primary)"
+            style="font:800 30px 'JetBrains Mono',monospace;text-anchor:middle">${score}%</text>
+      <text x="${cx}" y="${cy+10}" fill="var(--text-muted)"
+            style="font:500 10px 'Inter',sans-serif;text-anchor:middle">risque KO/Majeur</text>
+      <!-- Zone labels -->
+      <text x="${cx-R-4}" y="${cy+18}" fill="var(--success)"
+            style="font:600 8px 'Inter',sans-serif;text-anchor:end">Min.</text>
+      <text x="${cx+R+4}" y="${cy+18}" fill="var(--danger)"
+            style="font:600 8px 'Inter',sans-serif;text-anchor:start">KO</text>
+    </svg>`;
+
+  // Zone badges
+  const zones = [
+    { label:'NC Mineure', cls:'gz-minor', min:0, max:30 },
+    { label:'NC Majeure', cls:'gz-major', min:31, max:55 },
+    { label:'Risque KO élevé', cls:'gz-ko-risk', min:56, max:75 },
+    { label:'KO', cls:'gz-ko', min:76, max:100 },
+  ];
+  document.getElementById('gauge-zones').innerHTML = zones.map(z => {
+    const active = score >= z.min && score <= z.max;
+    return `<span class="gauge-zone-badge ${z.cls}${active?' active':''}">${z.label}</span>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RENDER: CLAUSES
+// ══════════════════════════════════════════════════════════════════════════
+function renderClauses(matched, rawNums) {
+  const el = document.getElementById('clauses-detail');
+  document.getElementById('clauses-count').textContent = rawNums.length;
+
+  if (!rawNums.length) {
+    el.innerHTML = `<div class="empty-hint"><i class="fas fa-tag"></i>
+      <p>Aucune clause IFS (ex: <code>4.18.1</code>) détectée dans le texte.<br>
+      L'analyse s'appuie sur les mots-clés de sévérité.</p></div>`;
+    return;
+  }
+
+  // Show clauses found but not in reqMap
+  const unknown = rawNums.filter(n => !reqMap[n]);
+
+  el.innerHTML = matched.map(req => {
+    const num = req._num;
+    const isKO = KO_REQS.has(num);
+    const ncEx = req.onglets?.exemplesNonConformites || '';
+    const texte = req.texte || '';
+    return `
+      <details class="req-item${isKO ? ' is-ko' : ''}">
+        <summary>
+          <span class="req-num">${req.numero || num}</span>
+          ${isKO ? `<span class="badge badge-ko">KO ${req.numeroKO||''}</span>` : '<span class="badge badge-other">Exigence</span>'}
+          <span class="req-title">${req.ssTitre || ''}</span>
+          <i class="fas fa-chevron-right chevron"></i>
+        </summary>
+        <div class="req-body">
+          <div class="req-texte">${esc(texte)}</div>
+          ${ncEx ? `<div class="req-nc-example"><strong><i class="fas fa-exclamation-circle"></i> Exemples NC IFS v8 :</strong> ${esc(ncEx)}</div>` : ''}
+        </div>
+      </details>`;
+  }).join('') +
+  (unknown.length ? `<div style="font-size:0.76rem;color:var(--text-muted);margin-top:8px">
+    Clauses non trouvées dans le référentiel : ${unknown.join(', ')}
+  </div>` : '');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RENDER: SIMILAR CASES
+// ══════════════════════════════════════════════════════════════════════════
+function flipCard(cardEl) { cardEl.classList.toggle('flipped'); }
+
+function renderCases(top5) {
+  const el = document.getElementById('similar-cases');
+  document.getElementById('cases-count').textContent = `${top5.length} / ${ncIndex.length}`;
+
+  if (!top5.length) {
+    el.innerHTML = `<div class="empty-hint"><i class="fas fa-folder-open"></i>
+      <p>Aucun cas suffisamment similaire trouvé dans la base.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="cases-grid">` + top5.map(e => {
+    const simPct = Math.round(e.similarity * 100);
+    const badgeClass = e.type === 'KO' ? 'badge-ko' : e.type === 'Major' ? 'badge-major' : e.type === 'Minor' ? 'badge-minor' : 'badge-other';
+    const isChapter = e._matchType === 'chapter';
+    const clauseTags = (e.clauses || []).map(c => {
+      const ko = KO_REQS.has(c);
+      // Highlight clauses that matched by chapter proximity
+      const chMatch = isChapter && !ko;
+      return `<span class="case-clause-tag${ko?' ko-clause':chMatch?' ch-match':''}">${c}</span>`;
+    }).join('');
+    return `
+      <div class="case-flip-wrap">
+        <div class="case-card${e.type==='KO'?' is-ko':''}" onclick="flipCard(this)">
+          <!-- RECTO -->
+          <div class="card-face face-front">
+            <div class="case-top">
+              <div class="case-supplier">${esc(e.supplier || '—')}</div>
+              <span class="badge ${badgeClass}">${e.type}</span>
+            </div>
+            <div class="case-meta">
+              <span><i class="fas fa-globe-europe"></i> ${esc(e.country||'—')}</span>
+              <span><i class="fas fa-calendar"></i> ${e.date||'—'}</span>
+              <span class="sim-badge">${simPct}% sim.</span>
+              ${isChapter ? '<span class="match-chapter-tag">≈ chapitre</span>' : ''}
+            </div>
+            ${clauseTags ? `<div class="case-clauses">${clauseTags}</div>` : ''}
+            <div class="case-excerpt">${esc(e.summary||'')}</div>
+            <div class="flip-hint"><i class="fas fa-sync-alt"></i> Cliquer pour lire le motif complet</div>
+          </div>
+          <!-- VERSO -->
+          <div class="card-face face-back">
+            <div class="back-header">
+              <span style="font-size:0.8rem;font-weight:700">${esc(e.supplier||'—')}</span>
+              <span class="badge ${badgeClass}">${e.type}</span>
+            </div>
+            <div class="back-full-text">${esc(e.full_text || e.summary || '')}</div>
+            <button type="button" class="flip-back-btn" onclick="event.stopPropagation();flipCard(this.closest('.case-card'))">
+              <i class="fas fa-sync-alt"></i> Retourner
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }).join('') + `</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RENDER: RECOMMENDATION
+// ══════════════════════════════════════════════════════════════════════════
+function renderReco(score, matchedClauses, top5, inputText, ctx, signals) {
+  const color = score >= 76 ? '#EF4444' : score >= 56 ? '#F97316' : score >= 31 ? '#F59E0B' : '#10B981';
+  document.getElementById('reco-bar').style.width = score + '%';
+  document.getElementById('reco-bar').style.background = color;
+  document.getElementById('reco-text').innerHTML = buildReco(score, matchedClauses, top5, inputText, ctx, signals);
+}
+
+function buildSignalBar(signals) {
+  if (!signals) return '';
+  const items = [
+    { key: 'S_clause',   label: 'Clause', color: '#6366F1', pct: signals.S_clause },
+    { key: 'S_history',  label: 'Historique', color: '#EF4444', pct: signals.S_history },
+    { key: 'S_severity', label: 'Sévérité', color: '#F97316', pct: signals.S_severity },
+    { key: 'S_context',  label: 'Contexte', color: '#F59E0B', pct: signals.S_context },
+  ];
+  if (signals.S_ml !== null) {
+    items.push({ key: 'S_ml', label: 'ML', color: '#10B981', pct: signals.S_ml });
+  }
+  const multLabel = signals.mult !== 100
+    ? `<span style="font-size:0.71rem;color:${signals.mult > 100 ? 'var(--danger)' : 'var(--success)'}">× ${(signals.mult/100).toFixed(2)} (ctx)</span>`
+    : '';
+
+  const bars = items.map(it => {
+    const w = it.pct;
+    return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+      <div style="font-size:0.67rem;color:var(--text-muted);min-width:68px;text-align:right">${it.label}</div>
+      <div style="flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${w}%;background:${it.color};border-radius:4px;transition:width 0.4s"></div>
+      </div>
+      <div style="font-size:0.67rem;color:var(--text-muted);min-width:26px">${w}%</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="margin:10px 0 4px">
+    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:6px;display:flex;align-items:center;gap:8px">
+      <i class="fas fa-signal"></i> Décomposition des signaux ${multLabel}
+    </div>
+    <div style="font-size:0.73rem;color:var(--text-muted);margin-bottom:6px">Clause ${signals.clauseType} · ${signals.S_ml !== null ? '5 signaux (ML actif)' : '4 signaux (ML non disponible)'}</div>
+    ${bars}
+  </div>`;
+}
+
+function buildReco(score, matchedClauses, top5, inputText, ctx, signals) {
+  const koClause       = matchedClauses.find(r => KO_REQS.has(r._num));
+  const firstReq       = koClause || matchedClauses[0];
+  const koCount        = top5.filter(e => e.type === 'KO').length;
+  const majCount       = top5.filter(e => e.type === 'Major').length;
+  const clauseNums     = matchedClauses.map(r => r._num);
+  const chapterMatches = top5.filter(e => e._matchType === 'chapter').length;
+  const histDominant   = top5.length >= 3 && (koCount + majCount) >= Math.ceil(top5.length * 0.8);
+  const chapterLabels  = [...new Set(clauseNums.map(chapterOf))].join(', ');
+
+  // ── Déterminer cotation et action ────────────────────────────────────
+  let cotation, action, intro;
+  if (score >= 76) {
+    cotation = 'KO / Suspension probable';
+    intro = `Constat à <strong>très haut risque</strong> — probabilité de suspension immédiate.`;
+    action = `Escalade immédiate requise. Préparer un plan d'actions correctives documenté avec délais. Un audit de suivi (Follow-up audit) doit être planifié dans les délais IFS réglementaires.`;
+  } else if (score >= 56) {
+    cotation = 'NC Majeure / Risque KO élevé';
+    intro = `Constat présentant un <strong>risque élevé</strong> de qualification en NC Majeure voire KO.`;
+    action = `Escalade recommandée. Vérifier l'étendue systémique de la défaillance. Si le problème est récurrent ou impacte directement la sécurité alimentaire, coter KO.`;
+  } else if (score >= 31) {
+    cotation = 'NC Majeure';
+    intro = `Constat à <strong>risque modéré</strong> de NC Majeure selon les tendances observées.`;
+    action = histDominant
+      ? `Le pattern historique dominant (${koCount + majCount}/${top5.length} Majeurs/KO) ne laisse pas de place à la NC Mineure. Documenter : rapport du prestataire, mesures engagées, délai de correction.`
+      : `Documenter avec précision. Évaluer la fréquence et l'impact. Si isolé et sans impact démontré sur la sécurité alimentaire, une NC Mineure peut être envisagée.`;
+  } else if (histDominant) {
+    cotation = 'NC Majeure — jurisprudence IFS dominante';
+    intro = `Score algorithmique faible (<strong>${score}/100</strong>) mais <strong>${koCount + majCount}/${top5.length} cas similaires cotés NC Majeure ou KO</strong> dans SUSPENSION.`;
+    action = `La jurisprudence IFS documentée pour ce type de constat est la <strong>NC Majeure</strong>. Appliquer cette cotation et documenter rigoureusement le plan correctif avec preuves à l'appui.`;
+  } else {
+    cotation = 'NC Mineure probable';
+    intro = `Constat présentant un <strong>risque faible</strong> de qualification en NC Majeure ou KO.`;
+    action = `Documentation standard des actions correctives. Surveiller la récurrence lors du prochain audit.`;
+  }
+
+  let html = `<p>${intro}</p>`;
+
+  // ── SECTION 1 : RÉFÉRENTIEL IFS v8 ───────────────────────────────────
+  if (firstReq) {
+    html += `<div class="reco-section-title"><i class="fas fa-book-open"></i> Référentiel IFS Food v8 — Clause ${firstReq._num}</div>`;
+    if (koClause) {
+      html += `<p style="font-size:0.82rem"><span class="hl">${koClause._num}</span> est un <strong>Knock-Out (KO ${koClause.numeroKO||''})</strong> IFS Food v8 : toute NC sur cette exigence entraîne la <strong>suspension automatique</strong> du certificat.</p>`;
+    } else {
+      html += `<p style="font-size:0.82rem">Clauses identifiées : ${clauseNums.map(n=>`<span class="hl">${n}</span>`).join(' ')}</p>`;
+    }
+    const texte = firstReq.texte || '';
+    const ncEx  = firstReq.onglets?.exemplesNonConformites || '';
+    if (texte) html += `<div class="reco-ifs-block"><div class="reco-ifs-label">Exigence</div><div class="reco-ifs-text">${esc(texte)}</div></div>`;
+    if (ncEx)  html += `<div class="reco-ifs-block nc-ex"><div class="reco-ifs-label"><i class="fas fa-exclamation-circle"></i> Exemples NC IFS v8</div><div class="reco-ifs-text">${esc(ncEx)}</div></div>`;
+    if (!koClause && clauseNums.length > 1) {
+      const others = clauseNums.slice(1).map(n=>`<span class="hl">${n}</span>`).join(' ');
+      html += `<p style="font-size:0.79rem;color:var(--text-muted)">Autres clauses identifiées : ${others}</p>`;
+    }
+  }
+
+  // ── SECTION 2 : ANALYSE DU CONSTAT ───────────────────────────────────
+  html += `<div class="reco-section-title"><i class="fas fa-search"></i> Analyse du constat</div>`;
+  html += `<div class="ctx-panel">`;
+  // Aggravating row
+  html += `<div class="ctx-row"><div class="ctx-row-label agg"><i class="fas fa-exclamation-triangle"></i> Aggravants</div><div class="ctx-chips">`;
+  html += ctx.aggravating.length
+    ? ctx.aggravating.map(f=>`<span class="ctx-chip agg">${esc(f.label)}</span>`).join('')
+    : `<span class="ctx-chip none">Aucun facteur aggravant détecté dans le texte</span>`;
+  html += `</div></div>`;
+  // Mitigating row
+  html += `<div class="ctx-row"><div class="ctx-row-label mit"><i class="fas fa-shield-alt"></i> Atténuants</div><div class="ctx-chips">`;
+  html += ctx.mitigating.length
+    ? ctx.mitigating.map(f=>`<span class="ctx-chip mit">${esc(f.label)}</span>`).join('')
+    : `<span class="ctx-chip none">Aucun facteur atténuant détecté dans le texte</span>`;
+  html += `</div></div></div>`;
+  // Context narrative
+  if (ctx.mitigating.length > 0 && ctx.aggravating.length === 0) {
+    html += `<p style="font-size:0.81rem;color:var(--text-muted);line-height:1.65">Des facteurs atténuants sont présents (${ctx.mitigating.slice(0,3).map(f=>f.label).join(', ')}). Ils constituent des éléments importants à documenter dans le plan correctif mais, selon la jurisprudence IFS, <strong>ne suppriment pas l'obligation de cotation NC Majeure</strong> lorsque la présence d'un nuisible ou d'une défaillance est objectivée.</p>`;
+  } else if (ctx.aggravating.length > 0 && ctx.mitigating.length > 0) {
+    html += `<p style="font-size:0.81rem;color:var(--text-muted);line-height:1.65">Profil mixte : facteurs aggravants (${ctx.aggravating.slice(0,2).map(f=>f.label).join(', ')}) et atténuants (${ctx.mitigating.slice(0,2).map(f=>f.label).join(', ')}) coexistent. Peser ces éléments dans le contexte global du système de management du site.</p>`;
+  } else if (ctx.aggravating.length > 0) {
+    html += `<p style="font-size:0.81rem;color:var(--danger);line-height:1.65">Plusieurs facteurs aggravants détectés — renforce la probabilité d'une cotation NC Majeure voire KO.</p>`;
+  }
+
+  // ── SECTION 3 : DONNÉES HISTORIQUES ──────────────────────────────────
+  if (top5.length > 0) {
+    html += `<div class="reco-section-title"><i class="fas fa-history"></i> Données historiques SUSPENSION (base : ${ncIndex.length} cas)</div>`;
+    html += `<p style="font-size:0.82rem">Sur <strong>${top5.length} cas similaires</strong>`;
+    if (chapterMatches > 0) html += ` (dont ${chapterMatches} par correspondance de chapitre ${chapterLabels})`;
+    html += ` : `;
+    const parts = [];
+    if (koCount > 0)  parts.push(`<strong>${koCount} suspension${koCount>1?'s':''} KO</strong>`);
+    if (majCount > 0) parts.push(`<strong>${majCount} NC Majeure${majCount>1?'s':''}</strong>`);
+    const otherC = top5.length - koCount - majCount;
+    if (otherC > 0)   parts.push(`${otherC} autre${otherC>1?'s':''}`);
+    if (!parts.length) parts.push('aucun KO ni Majeure');
+    html += parts.join(', ') + '. ';
+    if ((koCount + majCount) === top5.length && top5.length >= 3) {
+      html += `<strong>Pattern 100 % cohérent</strong> : tous les cas similaires ont conduit à une suspension IFS.`;
+    } else if ((koCount + majCount) / top5.length >= 0.8) {
+      html += `Pattern majoritairement Majeure/KO (${koCount + majCount}/${top5.length}).`;
+    } else if (koCount + majCount === 0) {
+      html += `<em>Aucun précédent de suspension dans les cas similaires — signal rassurant, à confirmer par l'analyse contextuelle.</em>`;
+    }
+    const refs = top5.slice(0, 3).map(e=>`<em>${esc(e.supplier)}</em> (${esc(e.country)}, ${(e.date||'').substring(0,4)})`);
+    if (refs.length) html += ` Cas référents : ${refs.join(' ; ')}.`;
+    html += `</p>`;
+  }
+
+  // ── SECTION 4 : INTERPRÉTATION IFS ───────────────────────────────────
+  const clauseNote = getClauseNote(clauseNums);
+  if (clauseNote) {
+    html += `<div class="reco-section-title"><i class="fas fa-gavel"></i> Interprétation IFS Food v8</div>`;
+    html += `<div class="ifs-note">${esc(clauseNote)}</div>`;
+  }
+
+  // ── SECTION 5 : RECOMMANDATION ────────────────────────────────────────
+  html += `<div class="reco-section-title"><i class="fas fa-check-circle"></i> Recommandation de cotation</div>`;
+  html += `<p><strong>${cotation}.</strong> ${action}</p>`;
+  html += buildSignalBar(signals);
+
+  return html;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PRINT HEADER
+// ══════════════════════════════════════════════════════════════════════════
+function buildPrintHeader(score, text) {
+  const now = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+  document.getElementById('print-header').innerHTML = `
+    <div style="font-family:Inter,sans-serif;font-size:11px;color:#444;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:800;color:#111;margin-bottom:4px">NC Analyzer — Rapport d'analyse IFS Food v8</div>
+      <div>Généré le ${now} — Base SUSPENSION (${ncIndex.length} cas)</div>
+    </div>
+    <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:12px;margin-bottom:16px">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:#777;margin-bottom:4px">Constat analysé</div>
+      <div style="font-size:11px;color:#333;line-height:1.6">${esc(text)}</div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:4px">Score de risque : ${score}%</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+function onInput() {
+  const text = document.getElementById('nc-input').value;
+  const clauses = extractClauses(text);
+  document.getElementById('detected-clauses').innerHTML = clauses.map(n => {
+    const isKO = KO_REQS.has(n);
+    return `<span class="clause-chip ${isKO?'ko':'std'}">
+      <i class="fas fa-${isKO?'exclamation-triangle':'tag'}"></i>${n}${isKO?' (KO)':''}
+    </span>`;
+  }).join('');
+}
+
+function clearAll() {
+  document.getElementById('nc-input').value = '';
+  document.getElementById('detected-clauses').innerHTML = '';
+  document.getElementById('results').style.display = 'none';
+}
+
+async function copyReco() {
+  const text = document.getElementById('reco-text').innerText;
+  const btn = document.getElementById('btn-copy');
+  try {
+    await navigator.clipboard.writeText(text);
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copié !';
+    setTimeout(() => btn.innerHTML = orig, 2000);
+  } catch(e) {
+    console.warn('Clipboard write failed', e);
+  }
+}
+
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('theme-icon').className = dark ? 'fas fa-sun' : 'fas fa-moon';
+  document.getElementById('theme-label').textContent = dark ? 'Mode sombre' : 'Mode clair';
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Keyboard shortcut: Ctrl+Enter to analyze
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); analyze(); }
+  if (e.key === 'Escape') clearAll();
+});
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
