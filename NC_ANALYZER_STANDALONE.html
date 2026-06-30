@@ -345,6 +345,10 @@ details.req-item[open] summary .chevron{transform:rotate(90deg)}
   </nav>
 
   <div class="sidebar-footer">
+    <button class="theme-toggle" onclick="forceReload()" id="btn-reload" title="Recharge les données depuis le serveur (vide le cache)">
+      <i class="fas fa-rotate-right"></i>
+      <span>Forcer rechargement</span>
+    </button>
     <button class="theme-toggle" onclick="toggleTheme()">
       <i class="fas fa-moon" id="theme-icon"></i>
       <span id="theme-label">Mode clair</span>
@@ -906,10 +910,28 @@ function renderGroqPanel(state, content, modelId) {
 // DATA LOADING
 // ══════════════════════════════════════════════════════════════════════════
 async function loadData() {
-  // Mode standalone : données embarquées, aucun serveur requis
-  setStatus('loading', 'Initialisation…');
+  // Detect file:// protocol
+  if (location.protocol === 'file:') {
+    document.getElementById('file-warn').style.display = 'block';
+    setStatus('error', 'Serveur local requis');
+    return;
+  }
+
+  // Cache-buster : empêche le navigateur d'utiliser des JSON périmés après redéploiement
+  const CB = `?v=${typeof __APP_BUILD !== 'undefined' ? __APP_BUILD : Date.now()}`;
+
+  // Diagnostic : vérifier que nc_derived.js a bien chargé
+  if (typeof __KEYWORD_IDF === 'undefined') {
+    console.warn('[NC Analyzer] nc_derived.js non chargé — KEYWORD_IDF_DATA vide, scores réduits');
+  }
+
+  setStatus('loading', 'Chargement du référentiel IFS…');
   try {
-    const ifsRaw = __IFS_DATA;
+    // Load IFS v8 JSON
+    const ifsRaw = await fetch('ifs_food_v8_fr.json' + CB).then(r => {
+      if (!r.ok) throw new Error(`ifs_food_v8_fr.json : HTTP ${r.status}`);
+      return r.json();
+    });
     ifsRaw.forEach(chap => {
       chap.sous_sections.forEach(ss => {
         ss.exigences.forEach(req => {
@@ -927,7 +949,12 @@ async function loadData() {
 
     setStatus('loading', 'Chargement de la base SUSPENSION…');
 
-    ncIndex = __NC_INDEX;
+    // Load nc_index.json
+    ncIndex = await fetch('nc_index.json' + CB).then(r => {
+      if (!r.ok) throw new Error(`nc_index.json : HTTP ${r.status}`);
+      return r.json();
+    });
+    console.log('[NC Analyzer] nc_index chargé :', ncIndex.length, 'cas');
 
     // Pre-parse clause sets for fast Jaccard
     ncIndex.forEach(e => {
@@ -947,8 +974,13 @@ async function loadData() {
     loadGroqSettings();
 
   } catch(err) {
-    setStatus('error', 'Erreur de chargement des données');
-    console.error(err);
+    console.error('[NC Analyzer] Erreur chargement :', err);
+    setStatus('error', `Erreur : ${err.message}`);
+    document.getElementById('file-warn').innerHTML =
+      `<strong>Erreur de chargement</strong><br>${err.message}<br>
+       <small>Vérifiez la console (F12) pour le détail.
+       <a href="javascript:location.reload(true)" style="color:inherit;text-decoration:underline">Recharger la page</a></small>`;
+    document.getElementById('file-warn').style.display = 'block';
   }
 }
 
@@ -1598,6 +1630,23 @@ async function copyReco() {
     setTimeout(() => btn.innerHTML = orig, 2000);
   } catch(e) {
     console.warn('Clipboard write failed', e);
+  }
+}
+
+function forceReload() {
+  // Vide les caches du navigateur via Service Worker si dispo, puis recharge
+  const btn = document.getElementById('btn-reload');
+  if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Rechargement…'; }
+  if ('caches' in window) {
+    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).finally(doReload);
+  } else {
+    doReload();
+  }
+  function doReload() {
+    // Ajoute un paramètre timestamp pour contourner le cache HTTP
+    const url = new URL(location.href);
+    url.searchParams.set('_v', Date.now());
+    location.href = url.toString();
   }
 }
 

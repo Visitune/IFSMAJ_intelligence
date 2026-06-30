@@ -1,17 +1,25 @@
 {
   "rewrites": [
-    { "source": "/",           "destination": "/NC_ANALYZER.html" },
+    { "source": "/",        "destination": "/NC_ANALYZER_STANDALONE.html" },
+    { "source": "/app",     "destination": "/NC_ANALYZER.html" },
     { "source": "/standalone", "destination": "/NC_ANALYZER_STANDALONE.html" },
-    { "source": "/guide",      "destination": "/GUIDE.html" }
+    { "source": "/guide",   "destination": "/GUIDE.html" }
   ],
   "headers": [
     {
       "source": "/(.*\\.json)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" },
+        { "key": "Vary",          "value": "Accept-Encoding" }
+      ]
     },
     {
       "source": "/nc_derived.js",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+    },
+    {
+      "source": "/NC_ANALYZER_STANDALONE.html",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
     }
   ]
 }
